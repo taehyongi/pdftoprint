@@ -7,17 +7,17 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
-	<string>flutter_ui</string>
+	<string>pdf2print</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.example.flutterUi</string>
+	<string>com.example.pdf2print</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>flutter_ui</string>
+	<string>pdf2print</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

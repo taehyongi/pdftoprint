@@ -1,0 +1,72 @@
+name: Release Mac and Windows
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-mac:
+    name: Build and Release macOS App
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build macOS App
+        run: flutter build macos --release
+
+      - name: Prepare macOS Asset
+        run: |
+          cd build/macos/Build/Products/Release
+          # Rename the app to PdfToPrint if it's named pdf2print
+          if [ -d "pdf2print.app" ]; then
+            mv "pdf2print.app" "PdfToPrint.app"
+          fi
+          zip -r PdfToPrint-macOS.zip PdfToPrint.app
+
+      - name: Upload macOS Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/macos/Build/Products/Release/PdfToPrint-macOS.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: Build and Release Windows App
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows App
+        run: flutter build windows --release
+
+      - name: Prepare Windows Asset
+        run: |
+          cd build\windows\x64\runner\Release
+          # Compress the entire Release folder contents
+          Compress-Archive -Path * -DestinationPath PdfToPrint-Windows.zip
+        shell: powershell
+
+      - name: Upload Windows Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build\windows\x64\runner\Release\PdfToPrint-Windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
