@@ -1,12 +1,77 @@
 name: Release Mac and Windows
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+    paths:
+      - 'pubspec.yaml'
+
+permissions:
+  contents: write
 
 jobs:
+  check-version:
+    name: Check Version Change
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      is_new: ${{ steps.check.outputs.is_new }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Extract version from pubspec.yaml
+        id: extract
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Check if version is new (Not already released)
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.extract.outputs.version }}"
+          TAG_NAME="v$VERSION"
+          
+          # Check if tag exists using GitHub API
+          if gh release view "$TAG_NAME" > /dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists. Skipping build."
+            echo "is_new=false" >> $GITHUB_OUTPUT
+          else
+            echo "Release $TAG_NAME does not exist. Proceeding with build."
+            echo "is_new=true" >> $GITHUB_OUTPUT
+          fi
+
+  create-release:
+    name: Create GitHub Release
+    needs: check-version
+    if: needs.check-version.outputs.is_new == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          TAG_NAME="v$VERSION"
+          gh release create "$TAG_NAME" \
+            --title "Release $TAG_NAME" \
+            --notes "Automated release for version $VERSION" \
+            --draft=false \
+            --prerelease=false
+
   build-mac:
-    name: Build and Release macOS App
+    name: Build and Upload macOS App
+    needs: [check-version, create-release]
+    if: needs.check-version.outputs.is_new == 'true'
     runs-on: macos-latest
     steps:
       - name: Checkout repository
@@ -33,14 +98,17 @@ jobs:
           zip -r PdfToPrint-macOS.zip PdfToPrint.app
 
       - name: Upload macOS Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          files: build/macos/Build/Products/Release/PdfToPrint-macOS.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          TAG_NAME="v$VERSION"
+          gh release upload "$TAG_NAME" build/macos/Build/Products/Release/PdfToPrint-macOS.zip --clobber
 
   build-windows:
-    name: Build and Release Windows App
+    name: Build and Upload Windows App
+    needs: [check-version, create-release]
+    if: needs.check-version.outputs.is_new == 'true'
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -60,13 +128,14 @@ jobs:
       - name: Prepare Windows Asset
         run: |
           cd build\windows\x64\runner\Release
-          # Compress the entire Release folder contents
           Compress-Archive -Path * -DestinationPath PdfToPrint-Windows.zip
         shell: powershell
 
       - name: Upload Windows Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          files: build\windows\x64\runner\Release\PdfToPrint-Windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          TAG_NAME="v$VERSION"
+          gh release upload "$TAG_NAME" "build\windows\x64\runner\Release\PdfToPrint-Windows.zip" --clobber
+        shell: bash
