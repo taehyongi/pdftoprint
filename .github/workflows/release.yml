@@ -96,6 +96,12 @@ jobs:
             mv "pdf2print.app" "PdfToPrint.app"
           fi
           zip -r PdfToPrint-macOS.zip PdfToPrint.app
+          
+          # Create DMG
+          mkdir -p dmg_staging
+          cp -R PdfToPrint.app dmg_staging/
+          ln -s /Applications dmg_staging/Applications
+          hdiutil create -volname "PdfToPrint" -srcfolder dmg_staging -ov -format UDZO "PdfToPrint_Installer.dmg"
 
       - name: Upload macOS Release Asset
         env:
@@ -104,6 +110,7 @@ jobs:
           VERSION="${{ needs.check-version.outputs.version }}"
           TAG_NAME="v$VERSION"
           gh release upload "$TAG_NAME" build/macos/Build/Products/Release/PdfToPrint-macOS.zip --clobber
+          gh release upload "$TAG_NAME" build/macos/Build/Products/Release/PdfToPrint_Installer.dmg --clobber
 
   build-windows:
     name: Build and Upload Windows App
