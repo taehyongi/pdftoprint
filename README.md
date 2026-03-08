@@ -1,5 +1,7 @@
 # PdfToPrint (PDF Multi-Tool)
 
+![App Screenshot](assets/app_screenshot.png)
+
 Flutter로 개발된 강력하고 세련된 데스크톱 PDF 유틸리티 애플리케이션입니다. 직관적인 드래그 앤 드롭 인터페이스를 통해 복잡한 PDF 편집 작업을 쉽게 수행할 수 있습니다.
 
 ## ✨ 주요 기능
